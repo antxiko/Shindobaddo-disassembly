@@ -2949,7 +2949,7 @@ sprites_lista:		; La lista (dy, dx, dibujo, color) hasta un 0
 sprites_lista_fin:
 	pop af			;5a15
 	ret			;5a16
-prota_anda:		; Un estado del protagonista: en pie. El boton 1 salta (el estado 3), el boton 2 golpea (el estado 4, hacia el lado de la palanca); si no, cada 4 o 7 cuadros la palanca por la tabla 0x5A84; despues lo de siempre
+prota_anda:		; Un estado del protagonista: en pie. El boton 1 da un golpe de alfanje (el estado 3), el boton 2 un salto mortal en arco (el estado 4, hacia el lado de la palanca); si no, cada 4 o 7 cuadros la palanca por la tabla 0x5A84; despues lo de siempre
 	ld a,(0eae4h)		;5a17   ; 0xEAE4?
 	or a			;5a1a
 	jp nz,isla_acabada		;5a1b
@@ -2969,20 +2969,20 @@ prota_anda_botones:
 	ld a,(0e006h)		;5a35   ; el boton 2?
 	or a			;5a38
 	jr z,prota_anda_palanca		;5a39
-	ld hl,0eadfh		;5a3b   ; el lado del golpe
+	ld hl,0eadfh		;5a3b   ; el lado del salto mortal
 	ld a,(0e004h)		;5a3e   ; la palanca...
 	sub 002h		;5a41   ; ...a la derecha (2-4): 1; a la izquierda (6-8): 0xFF; otra: 0
-	jr c,prota_golpe_recto		;5a43
+	jr c,prota_brinco_recto		;5a43
 	cp 003h		;5a45
-	jr z,prota_golpe_recto		;5a47
+	jr z,prota_brinco_recto		;5a47
 	ccf			;5a49   ; el signo: 1 o 0xFF
 	sbc a,a			;5a4a
 	or 001h		;5a4b
 	ld (hl),a			;5a4d   ; el lado
-	jr prota_golpe		;5a4e
-prota_golpe_recto:
+	jr prota_brinco_pon		;5a4e
+prota_brinco_recto:
 	ld (hl),000h		;5a50   ; recto
-prota_golpe:
+prota_brinco_pon:
 	ld a,007h		;5a52   ; el dibujo 7
 	ld (0eae5h),a		;5a54
 	ld a,004h		;5a57   ; el estado 4
@@ -3004,7 +3004,7 @@ prota_anda_palanca_va:
 	call salta_tabla		;5a72   ; salta
 prota_siempre:		; Cada cuadro: 0x60AC, 0x6017, 0x5F8B, 0x6140 y 0x6076
 	call enemigos_toca		;5a75
-	call pinchos_mira		;5a78
+	call suelo_bajo		;5a78
 	call suelo_mira		;5a7b
 	call pajaro_toca		;5a7e
 	jp meta_mira		;5a81
@@ -3092,42 +3092,42 @@ palanca_arriba_izq:		; 8: arriba a la izquierda
 	call escalera_mira		;5b03   ; hay escalera?
 	jr nz,palanca_izq		;5b06
 	jr sube_fila		;5b08
-prota_salta:		; El estado 3: el salto, tres pasos de 3 cuadros; en los pasos 2 y 3 mira arriba (0x5FE7); despues las cosas que coge (0x5B81) y, saltando de lado, se mueve
+prota_espada:		; El estado 3: el golpe de alfanje, tres dibujos de 3 cuadros; con los dibujos 2 y 3 mira si el alfanje da en un poste (0x5FE7, a los dos lados: el sonido 3 y se acaba); en cada cuadro, los enemigos que alcanza (0x5B81) y, con la palanca hacia donde mira, un paso
 	ld hl,0ead5h		;5b0a   ; el paso
 	ld a,(hl)			;5b0d
 	inc (hl)			;5b0e   ; un cuadro mas
 	or a			;5b0f   ; el primero?
-	jr nz,prota_salta_paso		;5b10
+	jr nz,prota_espada_paso		;5b10
 	ld (hl),003h		;5b12   ; cada 3 cuadros
 	inc a			;5b14   ; el dibujo 1...
 	ld (0eae5h),a		;5b15
 	inc a			;5b18   ; ...y el sonido 2
 	ld (0ec0dh),a		;5b19
 	ret			;5b1c
-prota_salta_paso:
+prota_espada_paso:
 	cp 003h		;5b1d   ; 3 cuadros?
-	jr c,prota_salta_coge		;5b1f
+	jr c,prota_espada_alcanza		;5b1f
 	ld (hl),001h		;5b21   ; otra vez 1
 	ld hl,0eae5h		;5b23   ; el dibujo siguiente
 	inc (hl)			;5b26
 	ld a,(hl)			;5b27
 	cp 004h		;5b28   ; el 4: acaba
-	jr nc,prota_salta_fin		;5b2a
+	jr nc,prota_espada_fin		;5b2a
 	cp 002h		;5b2c   ; el 2 o 3...
-	jr c,prota_salta_coge		;5b2e
+	jr c,prota_espada_alcanza		;5b2e
 	ld a,(0eadeh)		;5b30   ; ...mira arriba a su lado...
 	or 002h		;5b33
 	ld b,a			;5b35
 	push bc			;5b36
 	call pared		;5b37   ; ...choca?
 	pop bc			;5b3a
-	jr c,prota_salta_choca		;5b3b
+	jr c,prota_espada_choca		;5b3b
 	rrc b		;5b3d   ; ...y al otro
 	ccf			;5b3f
 	rl b		;5b40
 	call pared		;5b42
-	jr c,prota_salta_choca		;5b45
-prota_salta_coge:
+	jr c,prota_espada_choca		;5b45
+prota_espada_alcanza:
 	call coge		;5b47   ; lo que coge
 	ld a,(0e010h)		;5b4a   ; 0xE010?
 	or a			;5b4d   ; (la vista moviendose)
@@ -3135,32 +3135,32 @@ prota_salta_coge:
 	ld hl,0eadeh		;5b4f
 	ld a,(0e004h)		;5b52   ; la palanca: derecha...
 	cp 003h		;5b55
-	jr z,prota_salta_der		;5b57
+	jr z,prota_espada_der		;5b57
 	cp 007h		;5b59   ; ...o izquierda
-	jr z,prota_salta_izq		;5b5b
+	jr z,prota_espada_izq		;5b5b
 	ret			;5b5d
-prota_salta_der:
+prota_espada_der:
 	ld a,(hl)			;5b5e   ; mira a la derecha?
 	or a			;5b5f
 	ret nz			;5b60
 	call paso_der		;5b61   ; un paso
 	jp prota_siempre		;5b64
-prota_salta_izq:
+prota_espada_izq:
 	ld a,(hl)			;5b67   ; mira a la izquierda?
 	or a			;5b68
 	ret z			;5b69
 	call paso_izq		;5b6a   ; un paso
 	jp prota_siempre		;5b6d
-prota_salta_choca:
+prota_espada_choca:
 	ld a,003h		;5b70   ; el sonido 3
 	ld (0ec0dh),a		;5b72
-prota_salta_fin:
+prota_espada_fin:
 	xor a			;5b75   ; de pie: el estado 2
 	ld (0eae5h),a		;5b76
 	ld a,002h		;5b79
 	ld (0ead3h),a		;5b7b
 	jp botones_cero		;5b7e
-coge:		; Las ocho cosas de 0xEB32 (6 bytes): las que estan en su fila (0xEADD) y a menos de 4 columnas (0xEADC) se cogen (0x5BBD)
+coge:		; Los ocho objetos de 0xEB32 (6 bytes) que alcanza el alfanje: en juego (+0 = 0xFF, +1 = 0), en su fila (0xEADD) y a 1-4 columnas por delante (0xEADC, 0xEADE) caen (0x5BBD)
 	ld a,(0eb26h)		;5b81   ; 0xEB26?
 	or a			;5b84
 	ret z			;5b85
@@ -3202,11 +3202,11 @@ coge_sig:
 	inc hl			;5bb9
 	djnz coge_una		;5bba   ; una menos
 	ret			;5bbc
-coge_si:		; La cosa cogida: sale (0x7F); segun su numero: la 8, el sonido 4, 0xE001 bit 1 y 50 puntos; 5-7, 10 puntos; 1, 50; las otras, una menos en 0xEB29 y, a 0, se abre (0xE001 bit 0); 25 puntos
+coge_si:		; El objeto alcanzado cae (0x7F); segun cual: el primero (0xEB32), el sonido 4, 0xE001 bit 1 (la salida) y 500 puntos; los tres de 0xEB38, 100; el grande (0xEB5C), 500; los tres de 0xEB4A, uno menos en 0xEB29 y, a 0, se abre la isla (0xE001 bit 0, la musica 6); 250
 	push bc			;5bbd
 	push de			;5bbe
 	push hl			;5bbf
-	ld a,(0ead3h)		;5bc0   ; golpeando?
+	ld a,(0ead3h)		;5bc0   ; en el salto mortal?
 	cp 004h		;5bc3
 	jr z,coge_quita		;5bc5
 	ld a,(0eadch)		;5bc7   ; si no, la cosa a su lado
@@ -3304,7 +3304,7 @@ coge_puntos_pon:
 	pop de			;5c67
 	pop bc			;5c68
 	ret			;5c69
-prota_brinco:		; Un estado del protagonista: el salto de lado (0xEADF): siete pasos de 4 cuadros con la altura de la tabla 0x5CF2 (bits 0-2: 1 sube dos, 2 sube uno, 3 baja uno, 4 baja dos; bit 3: sin avance) y un paso hacia su lado cada vez; al acabar, en pie
+prota_brinco:		; Un estado del protagonista: el salto mortal en arco (el boton 2, hacia 0xEADF): siete pasos de 4 cuadros con la altura de la tabla 0x5CF2 (bits 0-2: 1 sube dos, 2 sube uno, 3 baja uno, 4 baja dos; bit 3: un paso solo) y dos pasos hacia su lado cada vez; en el aire, los objetos que toca caen; al acabar, en pie
 	ld hl,0ead5h		;5c6a   ; el paso
 	ld a,(hl)			;5c6d
 	inc (hl)			;5c6e   ; un cuadro mas
@@ -3379,7 +3379,7 @@ prota_brinco_fin:
 	ld a,002h		;5cda   ; de pie
 	ld (0ead3h),a		;5cdc
 	call botones_cero		;5cdf   ; los botones a 0
-	call pinchos_mira		;5ce2   ; pinchos?
+	call suelo_bajo		;5ce2   ; el suelo bajo los pies?
 prota_brinco_cuadro:
 	call toca_cosas		;5ce5   ; lo que toca
 	call meta_mira		;5ce8   ; la meta?
@@ -3388,8 +3388,8 @@ prota_brinco_cuadro:
 	jp suelo_mira		;5cef   ; el suelo?
 
 ; ----------------------------------------------------------------------
-; DATOS brinco_alturas: Las siete alturas del salto de lado (bits 0-2) y si
-;   avanza (bit 3)
+; DATOS brinco_alturas: Las siete alturas del salto mortal (bits 0-2) y si
+;   avanza un paso solo (bit 3)
 ;   0x5cf2..0x5cf9  (7 bytes)
 DATA_brinco_alturas:
 	defb 009h,00ah,002h,000h,00ch,00ch,00bh	; 5cf2
@@ -3399,7 +3399,7 @@ DATA_brinco_alturas:
 ; ======================================================================
 
 
-toca_cosas:		; Las cosas de 0xEB32 a menos de 3 filas y 3 columnas del protagonista se cogen (0x5BBD)
+toca_cosas:		; En el salto mortal, los objetos de 0xEB32 a menos de 3 filas y 3 columnas caen tambien (0x5BBD)
 	ld a,(0eb26h)		;5cf9   ; 0xEB26?
 	or a			;5cfc
 	ret z			;5cfd
@@ -3437,40 +3437,40 @@ toca_cosa_sig:
 	inc hl			;5d2b
 	djnz toca_cosa		;5d2c   ; una menos
 	ret			;5d2e
-prota_cae_mar:		; Un estado: el protagonista cae al mar: a los 6 cuadros el sonido 9, a los 18 0xEAD6, a los 60 el dibujo 10 y el sonido 10; a los 100, una vida menos
+prota_muere:		; Un estado: muere (al caer al suelo desde arriba, o al fondo): a los 6 cuadros el sonido 9, a los 18 0xEAD6 (sin choques), a los 60 el dibujo 10 y el sonido 10; a los 100, una vida menos
 	ld hl,0ead5h		;5d2f   ; un cuadro mas
 	inc (hl)			;5d32
 	ld a,(hl)			;5d33
 	cp 006h		;5d34   ; 6?
-	jr nz,prota_cae_mar_18		;5d36
+	jr nz,prota_muere_18		;5d36
 	ld a,009h		;5d38   ; el sonido 9
 	ld (0ec0dh),a		;5d3a
 	ret			;5d3d
-prota_cae_mar_18:
+prota_muere_18:
 	cp 012h		;5d3e
-	jr nz,prota_cae_mar_60		;5d40
+	jr nz,prota_muere_60		;5d40
 	ld a,0ffh		;5d42   ; 0xEAD6 = 0xFF
 	ld (0ead6h),a		;5d44
 	ret			;5d47
-prota_cae_mar_60:
+prota_muere_60:
 	cp 03ch		;5d48
-	jr nz,prota_cae_mar_100		;5d4a
+	jr nz,prota_muere_100		;5d4a
 	xor a			;5d4c   ; 0xEB26 a 0
 	ld (0eb26h),a		;5d4d
 	ld a,00ah		;5d50   ; el dibujo 10 y el sonido 10
 	ld (0eae5h),a		;5d52
 	ld (0ec0dh),a		;5d55
 	ret			;5d58
-prota_cae_mar_100:
+prota_muere_100:
 	cp 064h		;5d59   ; 100?
 	ret c			;5d5b   ; aun no
 	jr vida_menos		;5d5c
-prota_tocado:		; Un estado: tocado: el sonido 6, se queda quieto; 16 pasos de 6 cuadros y el estado 7; despues una vida menos
+prota_atrapado:		; Un estado: atrapado (en el charco rojo, 0x28-0x29, o por un enemigo): el sonido 6, se queda quieto; 16 pasos de 6 cuadros y el estado 7 (cae); despues una vida menos
 	ld hl,0ead5h		;5d5e   ; el paso
 	ld a,(hl)			;5d61
 	inc (hl)			;5d62   ; un cuadro mas
 	or a			;5d63   ; el primero?
-	jr nz,prota_tocado_paso		;5d64
+	jr nz,prota_atrapado_paso		;5d64
 	xor a			;5d66   ; 0xEAE5 y 0xEB26 a 0
 	ld (0eae5h),a		;5d67
 	ld (0eb26h),a		;5d6a
@@ -3481,10 +3481,10 @@ prota_tocado:		; Un estado: tocado: el sonido 6, se queda quieto; 16 pasos de 6 
 	ld a,008h		;5d76   ; 8 en 0xEAE1
 	ld (0eae1h),a		;5d78
 	ret			;5d7b
-prota_tocado_paso:
+prota_atrapado_paso:
 	cp 006h		;5d7c   ; cada 6 cuadros
 	ret c			;5d7e
-	jr nz,prota_tocado_fin		;5d7f   ; (pasado de 6: el paso 7, esperando a 67)
+	jr nz,prota_atrapado_fin		;5d7f   ; (pasado de 6: el paso 7, esperando a 67)
 	ld (hl),001h		;5d81   ; otra vez 1
 	ld hl,0eae1h		;5d83   ; uno mas
 	inc (hl)			;5d86
@@ -3497,7 +3497,7 @@ prota_tocado_paso:
 	ld hl,0ead5h		;5d93   ; el paso 7
 	ld (hl),007h		;5d96
 	ret			;5d98
-prota_tocado_fin:
+prota_atrapado_fin:
 	cp 043h		;5d99   ; 67 cuadros?
 	ret c			;5d9b
 vida_menos:		; Una vida menos: los sprites fuera, el estado 14; en la demostracion, la presentacion; con la tecla 0 pulsada al encender (0xE000 bit 7), no se pierde; sin vidas, GAME OVER (el estado 5)
@@ -3566,7 +3566,7 @@ prota_rebota_cuadro:
 	call meta_mira		;5e13   ; la meta?
 	call pajaro_toca		;5e16   ; el pajaro?
 	ret c			;5e19
-	call pinchos_mira		;5e1a   ; pinchos?
+	call suelo_bajo		;5e1a   ; el suelo bajo los pies?
 	jp suelo_mira		;5e1d   ; el suelo?
 prota_estado13:
 	ld a,00dh		;5e20
@@ -3705,7 +3705,7 @@ prota_sube_fin:
 	ld a,007h		;5f0c   ; el estado 7
 	ld (0ead3h),a		;5f0e
 	jr prota_cae_mira		;5f11   ; lo que hay debajo
-prota_cae:		; Un estado: cae, una fila cada 4 cuadros; abajo del todo (fila 24), al mar; en una casilla de agua (0x605F), el estado 13; en las 0x28/0x29, el 12
+prota_cae:		; Un estado: cae, una fila cada 4 cuadros; al llegar al suelo (las casillas de 0x605F) o al fondo (fila 24), muere (el estado 13); en el charco rojo (0x28/0x29), el 12
 	ld hl,0ead5h		;5f13   ; el paso
 	ld a,(hl)			;5f16
 	inc (hl)			;5f17   ; un cuadro mas
@@ -3730,10 +3730,10 @@ prota_cae_mira:
 	ld bc,00003h		;5f35   ; la casilla bajo sus pies
 	call casilla_prota		;5f38
 	ld a,(hl)			;5f3b   ; cual?
-	ld bc,00005h		;5f3c   ; cinco casillas...
+	ld bc,00005h		;5f3c   ; las cinco del suelo...
 	ld hl,0605fh		;5f3f   ; ...de 0x605F
 	cpir		;5f42   ; CPIR
-	jr z,$+12		;5f44   ; una de ellas: a 0x5F50 ("ld a,0x0D": el estado 13)
+	jr z,$+12		;5f44   ; una de ellas: a 0x5F50 ("ld a,0x0D": muere)
 	cp 028h		;5f46   ; 0x28?
 	jr z,prota_cae_12		;5f48
 	cp 029h		;5f4a   ; 0x29?
@@ -3840,7 +3840,7 @@ prota_rebote_busca:
 	ld a,009h		;5fe1   ; el estado 9
 	ld (0ead3h),a		;5fe3
 	ret			;5fe6
-pared:		; ¿Hay pared al lado B (columna + B, la parte por la fila) en la lista de 0xEAC1? C si la hay
+pared:		; ¿Hay un poste (la lista de 0xEAC1, las casillas 0x33-0x34) al lado B (columna + B, la parte por la fila)? C si lo hay
 	ld c,000h		;5fe7   ; la parte
 	ld a,(0eaddh)		;5fe9
 	cp 002h		;5fec   ; por encima de la fila 2: no
@@ -3873,8 +3873,8 @@ pared_si:
 pared_no:
 	or a			;6015   ; NC: nada
 	ret			;6016
-pinchos_mira:		; Fuera de los estados 4 y 5: las dos casillas sobre las que esta, contra las de 0x6059 (el sonido 6 y el estado 7) y las de 0x605F (nada); por debajo de 0x40 tambien el 7; si no, el 12
-	ld a,(0ead3h)		;6017   ; golpeando o en la escalera: nada
+suelo_bajo:		; Fuera de los estados 4 y 5: las dos casillas bajo sus pies: sin suelo (las seis de 0x6059 o de 0x40 en adelante), cae (el sonido 6 y el estado 7); en el suelo (las cinco de 0x605F), nada; en otra (el charco rojo 0x28-0x29...), atrapado (el estado 12)
+	ld a,(0ead3h)		;6017   ; en el salto mortal o en la escalera: nada
 	cp 004h		;601a
 	ret z			;601c
 	cp 005h		;601d
@@ -3883,42 +3883,43 @@ pinchos_mira:		; Fuera de los estados 4 y 5: las dos casillas sobre las que esta
 	call casilla_prota		;6023
 	ld b,002h		;6026   ; dos
 	ex de,hl			;6028   ; DE la casilla
-pinchos_casilla:
+suelo_bajo_casilla:
 	push bc			;6029
 	ld a,(de)			;602a   ; la casilla
 	ld bc,00006h		;602b   ; seis de 0x6059
 	ld hl,06059h		;602e
 	cpir		;6031   ; CPIR
-	jr z,pinchos_si		;6033
+	jr z,suelo_bajo_cae		;6033
 	ld bc,00005h		;6035   ; cinco de 0x605F
 	ld hl,0605fh		;6038
 	cpir		;603b
-	jr z,pinchos_sig		;603d   ; del agua: la de al lado
+	jr z,suelo_bajo_sig		;603d   ; suelo: la de al lado
 	cp 040h		;603f   ; 0x40 o mas
-	jr nc,pinchos_si		;6041
-	jr pinchos_12		;6043   ; otra: el estado 12 (cae)
-pinchos_sig:
+	jr nc,suelo_bajo_cae		;6041
+	jr suelo_bajo_atrapa		;6043   ; otra: el estado 12 (atrapado)
+suelo_bajo_sig:
 	pop bc			;6045
 	inc de			;6046   ; la de al lado
-	djnz pinchos_casilla		;6047   ; una menos
+	djnz suelo_bajo_casilla		;6047   ; una menos
 	ret			;6049
-pinchos_si:
+suelo_bajo_cae:
 	ld a,006h		;604a   ; el sonido 6
 	ld (0ec0dh),a		;604c
 	inc a			;604f   ; el estado 7
-	jr pinchos_pon		;6050
-pinchos_12:
+	jr suelo_bajo_pon		;6050
+suelo_bajo_atrapa:
 	ld a,00ch		;6052   ; el estado 12
-pinchos_pon:
+suelo_bajo_pon:
 	ld (0ead3h),a		;6054
 	pop bc			;6057   ; (fuera del bucle)
 	ret			;6058
 
 ; ----------------------------------------------------------------------
-; DATOS casillas_peligro: Seis casillas que tocan al protagonista (0x6059) y
-;   cinco del agua (0x605F)
+; DATOS casillas_suelo: Las seis casillas sin suelo (0x6059: 0, 0x20, los
+;   bordes de los huecos 0x22 y 0x24, la escalera 0x26 y 0x3B) y las cinco del
+;   suelo (0x605F: 0x21, 0x23, 0x3C, 0x27, 0x3E)
 ;   0x6059..0x6064  (11 bytes)
-DATA_casillas_peligro:
+DATA_casillas_suelo:
 	defb 000h,020h,022h,024h,026h,03bh,021h,023h,03ch,027h,03eh	; 6059  . "$&;!#<'>
 
 ; ======================================================================
@@ -6322,7 +6323,7 @@ tiro_borra:		; El tiro de los enemigos (0xEC09) se acaba: el dibujo 0x58 de los 
 	call 00056h		;7914   ; FILVRM
 	ld hl,07a4dh		;7917   ; el dibujo del tiro
 	jp tiro_dibujo		;791a
-tiro:		; El tiro de los enemigos (0xEC09: bits de direccion, fila, columna): se mueve; fuera de la pantalla se acaba; si toca al protagonista (en su misma fila, no con el dibujo 0xEAE5 6 o mas), lo tumba (estado 0x0F, 0xEADF el lado)
+tiro:		; El tiro de los enemigos (0xEC09: bits de direccion, fila, columna): se mueve; fuera de la pantalla se acaba; si toca al protagonista (en su misma fila no le da agachado, con el dibujo 0xEAE5 6 o mas), lo tumba (estado 0x0F, 0xEADF el lado)
 	ld hl,(0eb30h)		;791d   ; parado?
 	ld a,(hl)			;7920
 	or a			;7921
@@ -6388,14 +6389,14 @@ tiro_toca:
 	jr c,tiro_sprite		;79a5
 	jr tiro_golpe		;79a7
 tiro_misma_fila:
-	ld a,(0eae5h)		;79a9   ; en su fila: con el dibujo 6 o mas...
+	ld a,(0eae5h)		;79a9   ; en su fila: agachado (el dibujo 6) o con otro de 6 o mas...
 	cp 006h		;79ac
 	jr nc,tiro_sprite		;79ae   ; ...no le da
 tiro_golpe:
 	ld a,(0e000h)		;79b0   ; la tecla 0 al encender (0xE000 bit 7): no le da
 	and 080h		;79b3
 	jr nz,tiro_sprite		;79b5
-	ld a,(ix+000h)		;79b7   ; el lado del golpe
+	ld a,(ix+000h)		;79b7   ; el lado del rebote
 	rra			;79ba
 	sbc a,a			;79bb
 	ld (0eadfh),a		;79bc
