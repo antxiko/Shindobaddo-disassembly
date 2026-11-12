@@ -423,7 +423,7 @@ record_nuevo:
 	ldir		;42e8
 	dec hl			;42ea   ; el byte alto...
 	ld a,(hl)			;42eb
-	and 00fh		;42ec   ; ...sin la cifra alta (no se pinta: cinco cifras y el 0)
+	and 00fh		;42ec   ; ...sin la cifra alta (no se pinta: cinco cifras y el 0); pasado 99.999 era un 1: puntos y record se hunden
 	ld (hl),a			;42ee
 	dec de			;42ef   ; y el del record
 	ld a,(de)			;42f0

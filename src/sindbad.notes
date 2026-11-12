@@ -2267,7 +2267,7 @@ C 0x42DA el byte siguiente
 C 0x42DF los puntos...
 C 0x42E2 ...al record
 C 0x42EA el byte alto...
-C 0x42EC ...sin la cifra alta (no se pinta: cinco cifras y el 0)
+C 0x42EC ...sin la cifra alta (no se pinta: cinco cifras y el 0); pasado 99.999 era un 1: puntos y record se hunden
 C 0x42EF y el del record
 C 0x42F5 la columna que se ve + 12
 C 0x42FB la del protagonista

@@ -92,7 +92,10 @@ PAGINAS = [
       "keys at power-on: endless lives and the starting island, the game in the interrupt, jumps into the middle "
       "of instructions and code nobody calls",
       "las teclas al encender: vidas sin fin y la isla de salida, el juego en la interrupci&oacute;n, saltos a "
-      "mitad de una instrucci&oacute;n y c&oacute;digo que nadie llama")],
+      "mitad de una instrucci&oacute;n y c&oacute;digo que nadie llama"),
+     ("SECRETS-AND-BUGS.html", "SECRETOS-Y-FALLOS.html", "Secrets and bugs", "Secretos y fallos",
+      "what was searched for: the keys at power-on, the controls, and the score past a million that drags the high score down to 400",
+      "lo que se ha buscado: las teclas al encender, los mandos, y los puntos pasado el mill&oacute;n, que hunden el r&eacute;cord hasta 400")],
     [("UNDER-THE-HOOD.html", "POR-DENTRO.html", "Under the hood", "Por dentro",
       "rebuilding the ROM, the BIOS it uses, the states, the RAM and the tools",
       "rehacer la ROM, la BIOS que usa, los estados, la RAM y las herramientas")],
